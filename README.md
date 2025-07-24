@@ -1,61 +1,80 @@
-[![Weekly Email](https://github.com/your-username/CFB_Live_Full_App/actions/workflows/cfb_email.yaml/badge.svg)](https://github.com/your-username/CFB_Live_Full_App/actions)
+# 🏈 College Football Player Props Dashboard
 
-https://cfb-complete-predictor-4bufsc5yv2snuddhiqwnds.streamlit.app/
+This app is a live, data-driven dashboard for exploring NCAA college football player props. It combines real-time betting lines with historical performance stats to calculate edge, hit rates, and suggested bets.
 
-# 🏈 CFB Live Predictor
-
-This project predicts college football upsets, covers, and confidence picks using logistic regression and simulation models, powered by live data from CollegeFootballData and TheOddsAPI.
+---
 
 ## 🚀 Features
 
-- Live game schedule and spreads
-- Upset probabilities (simulated & logistic)
-- Cover probability estimates
-- Confidence index and suggested picks
-- Injury reports per matchup
-- Automated weekly email alerts (via GitHub Actions or Render)
-- Streamlit dashboard for exploration
+- 📊 **Player Prop Explorer**  
+  - Pulls live player prop lines from [TheOddsAPI](https://the-odds-api.com/)
+  - Enhances with player performance stats from [CollegeFootballData API (CFBD)](https://collegefootballdata.com/)
+  - Filters: Team, Stat Type, Position (future)
+  - Computes model projection (average last 5 games), hit %, and edge
+  - Highlights top suggested bets (Edge > 10, Hit% > 60%)
 
-## 📦 Files
+- 📧 **Email Script (main.py)**  
+  - Optional script to send top props to your inbox weekly
+  - Securely pulls from `.env` or GitHub Secrets
 
-| File        | Purpose                                        |
-|-------------|------------------------------------------------|
-| `app.py`    | Streamlit dashboard                           |
-| `main.py`   | Email sender with weekly predictions          |
-| `.env.template` | Template for secrets and API keys         |
-| `requirements.txt` | Python dependencies                    |
+---
 
-## 🛠 Setup
+## 📦 Project Structure
 
-1. Clone or upload contents to GitHub.
-2. Create `.env` based on `.env.template` and populate with your keys.
-3. Deploy:
-   - `app.py` on [Streamlit Cloud](https://streamlit.io/cloud)
-   - `main.py` on [Render.com](https://render.com) or GitHub Actions as Cron
-
-## 🔐 Required Environment Variables
-
-```env
-CFBD_API_KEY=your_cfbd_api_key
-ODDS_API_KEY=your_odds_api_key
-EMAIL_PASSWORD=your_gmail_app_password
-EMAIL_TO=your_email@example.com
+```
+CFB_Live_Props_Stats_Integrated/
+│
+├── app.py               # Streamlit dashboard with live player props
+├── main.py              # Email automation script (optional)
+├── requirements.txt     # Python dependencies
+├── .env.template        # Template for API keys and secrets
+└── README.md            # This documentation
 ```
 
-## 🕒 GitHub Actions Automation
+---
 
-This repo includes a GitHub Actions workflow to auto-email weekly predictions:
+## 🔧 Setup Instructions
 
-- Trigger: Every Thursday at 9 AM UTC
-- File: `.github/workflows/cfb_email.yaml`
+1. **Install Requirements**
+```bash
+pip install -r requirements.txt
+```
 
-Be sure to set these secrets in GitHub:
+2. **Add API Keys**  
+   Create a `.env` file or set these as GitHub/Render secrets:
+```
+ODDS_API_KEY=your_odds_api_key
+CFBD_API_KEY=your_cfbd_api_key
+EMAIL_PASSWORD=your_gmail_app_password
+EMAIL_TO=recipient@example.com
+```
 
-- `CFBD_API_KEY`
-- `ODDS_API_KEY`
-- `EMAIL_PASSWORD`
-- `EMAIL_TO`
+3. **Run Locally**
+```bash
+streamlit run app.py
+```
 
-## ✅ License
+---
 
-MIT License
+## 📤 Optional: Email Predictions
+
+To automate sending weekly top props, configure `main.py` to run as a scheduled job (via Render or GitHub Actions).
+
+---
+
+## 🧠 Notes
+
+- You must sign up for [TheOddsAPI](https://the-odds-api.com/) and [CFBD](https://collegefootballdata.com/) to get your keys.
+- Some props may not match exactly by player name between systems. Future enhancements will support fuzzy matching and position detection.
+
+---
+
+## ✨ Example Output
+
+| Player           | Team | Stat Type     | Prop Line | Model Proj | Hit % | Edge | Bookmaker |
+|------------------|------|---------------|-----------|------------|-------|------|-----------|
+| Jayden Daniels   | LSU  | Passing Yards | 295.5     | 318.7      | 0.68  | 23.2 | DraftKings|
+
+---
+
+Made with ❤️ for college football data enthusiasts.
