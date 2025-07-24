@@ -1,5 +1,7 @@
 [![Weekly Email](https://github.com/your-username/CFB_Live_Full_App/actions/workflows/cfb_email.yaml/badge.svg)](https://github.com/your-username/CFB_Live_Full_App/actions)
 
+https://cfb-complete-predictor-4bufsc5yv2snuddhiqwnds.streamlit.app/
+
 # 🏈 CFB Live Predictor
 
 This project predicts college football upsets, covers, and confidence picks using logistic regression and simulation models, powered by live data from CollegeFootballData and TheOddsAPI.
