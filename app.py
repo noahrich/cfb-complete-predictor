@@ -1,105 +1,46 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import os
-from sklearn.linear_model import LogisticRegression
 import requests
-from datetime import datetime
+import os
 
-st.set_page_config(page_title="CFB Live Predictor", layout="wide")
+# Placeholder for environment/API keys
+ODDS_API_KEY = os.getenv("ODDS_API_KEY")
+CFBD_API_KEY = os.getenv("CFBD_API_KEY")
 
-def simulate_model(spread):
-    return np.clip(0.5 - spread / 30.0, 0.05, 0.95)
+# Sample live props fetch function (replace with actual API logic)
+def fetch_live_props():
+    # This is where TheOddsAPI and CFBD calls would go
+    data = [
+        {"player": "Jayden Daniels", "team": "LSU", "position": "QB", "stat_type": "Passing Yards",
+         "prop_line": 295.5, "model_proj": 318.7, "hit_pct": 0.68, "edge": 23.2},
+        {"player": "TreVeyon Henderson", "team": "OSU", "position": "RB", "stat_type": "Rushing Yards",
+         "prop_line": 100.5, "model_proj": 89.1, "hit_pct": 0.45, "edge": -11.4},
+    ]
+    return pd.DataFrame(data)
 
-def logistic_model(spreads):
-    spreads = np.array(spreads).reshape(-1, 1)
-    model = LogisticRegression()
-    X = np.linspace(-30, 30, 200).reshape(-1, 1)
-    y = [1 if x > 0 else 0 for x in X]
-    model.fit(X, y)
-    return model.predict_proba(spreads)[:,1]
+# Streamlit layout
+st.set_page_config(page_title="CFB Live Props", layout="wide")
 
-@st.cache_data
-def fetch_live_games():
-    cfbd_key = os.getenv("CFBD_API_KEY")
-    odds_key = os.getenv("ODDS_API_KEY")
-    week = datetime.now().isocalendar().week
-    year = datetime.now().year
+tabs = st.tabs(["🏈 Predictions", "📊 Player Props"])
+with tabs[1]:
+    st.header("📊 Player Props Explorer")
 
-    games_url = f"https://api.collegefootballdata.com/games?year={year}&week={week}&seasonType=regular"
-    headers = {"Authorization": f"Bearer {cfbd_key}"}
-    games_res = requests.get(games_url, headers=headers)
+    props_df = fetch_live_props()
 
-    odds_url = f"https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds?regions=us&markets=spreads&oddsFormat=decimal&apiKey={odds_key}"
-    odds_res = requests.get(odds_url)
+    teams = st.multiselect("Filter by Team", options=props_df["team"].unique())
+    positions = st.multiselect("Filter by Position", options=props_df["position"].unique())
+    stats = st.multiselect("Filter by Stat Type", options=props_df["stat_type"].unique())
 
-    games_df = pd.DataFrame(games_res.json())
-    odds_df = pd.DataFrame(odds_res.json())
+    filtered = props_df.copy()
+    if teams:
+        filtered = filtered[filtered["team"].isin(teams)]
+    if positions:
+        filtered = filtered[filtered["position"].isin(positions)]
+    if stats:
+        filtered = filtered[filtered["stat_type"].isin(stats)]
 
-    rows = []
-    for game in games_df.itertuples():
-        team1 = game.home_team
-        team2 = game.away_team
-        matchup = f"{team2} @ {team1}"
-        spread = np.nan
-        for line in odds_df.get("bookmakers", []):
-            if line.get("markets"):
-                for market in line["markets"]:
-                    for outcome in market["outcomes"]:
-                        if outcome["name"] == team1:
-                            spread = -outcome.get("point", 0)
-        rows.append({"Matchup": matchup, "Spread": spread})
-    return pd.DataFrame(rows).dropna()
+    st.dataframe(filtered)
 
-@st.cache_data
-def fetch_injuries(teams):
-    key = os.getenv("CFBD_API_KEY")
-    if not key:
-        return pd.DataFrame()
-    r = requests.get(
-        "https://api.collegefootballdata.com/injuries",
-        headers={"Authorization": f"Bearer {key}"}
-    )
-    if r.status_code != 200:
-        return pd.DataFrame()
-    df = pd.DataFrame(r.json())
-    return df[df['team'].isin(teams)]
-
-st.title("🏈 CFB Live Prediction Dashboard")
-
-df = fetch_live_games()
-if df.empty:
-    st.warning("No live games or lines available.")
-else:
-    df['Sim Upset %'] = df['Spread'].apply(simulate_model) * 100
-    df['Logistic Upset %'] = logistic_model(df['Spread']) * 100
-    df['Difference'] = df['Logistic Upset %'] - df['Sim Upset %']
-    df['Confidence'] = abs(df['Difference']).round(1)
-    df['Sim Cover %'] = df['Spread'].apply(lambda x: 100 - simulate_model(x) * 100)
-
-    st.subheader("📊 Predictions")
-    st.dataframe(df.style.format({
-        'Spread': '{:.1f}',
-        'Sim Upset %': '{:.1f}%',
-        'Logistic Upset %': '{:.1f}%',
-        'Sim Cover %': '{:.1f}%',
-        'Confidence': '{:.1f}%'
-    }))
-
-    st.subheader("✅ Suggested Picks")
-    high_conf = df[df['Confidence'] > 15].copy()
-    if high_conf.empty:
-        st.write("No strong confidence picks this week.")
-    else:
-        st.table(high_conf[['Matchup', 'Spread', 'Sim Upset %', 'Logistic Upset %', 'Confidence']])
-
-    st.subheader("🩼 Injury Report")
-    teams = []
-    for matchup in df["Matchup"]:
-        for team in matchup.split(" @ "):
-            teams.append(team.strip())
-    injuries_df = fetch_injuries(teams)
-    if injuries_df.empty:
-        st.info("No injury data available or API key missing.")
-    else:
-        st.dataframe(injuries_df[['team', 'player', 'position', 'status']])
+    st.subheader("🔍 Suggested Props (Edge > 10 and Hit% > 60%)")
+    suggestions = filtered[(filtered["edge"].abs() > 10) & (filtered["hit_pct"] >= 0.6)]
+    st.table(suggestions[["player", "team", "position", "stat_type", "prop_line", "model_proj", "edge", "hit_pct"]])
